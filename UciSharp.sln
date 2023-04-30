@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UciSharp", "UciSharp\UciSharp.csproj", "{029570FE-D5E9-4FA4-BEE5-9CDEA91695F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UciSharp.Tests", "UciSharp.Tests\UciSharp.Tests.csproj", "{48EFCB39-6C86-4EE5-BF9E-67A4EAF00044}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "ConsoleApp\ConsoleApp.csproj", "{7D882852-1739-4C55-9986-DC21B74640F4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{029570FE-D5E9-4FA4-BEE5-9CDEA91695F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{029570FE-D5E9-4FA4-BEE5-9CDEA91695F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{029570FE-D5E9-4FA4-BEE5-9CDEA91695F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{029570FE-D5E9-4FA4-BEE5-9CDEA91695F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48EFCB39-6C86-4EE5-BF9E-67A4EAF00044}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48EFCB39-6C86-4EE5-BF9E-67A4EAF00044}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48EFCB39-6C86-4EE5-BF9E-67A4EAF00044}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48EFCB39-6C86-4EE5-BF9E-67A4EAF00044}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D882852-1739-4C55-9986-DC21B74640F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D882852-1739-4C55-9986-DC21B74640F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D882852-1739-4C55-9986-DC21B74640F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D882852-1739-4C55-9986-DC21B74640F4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
