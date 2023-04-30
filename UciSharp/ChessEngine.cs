@@ -19,6 +19,9 @@ public class ChessEngine : IObserver<CommandEvent>, IAsyncDisposable, IDisposabl
     public IReadOnlyList<Option> AvailableOptions => AvailableOptionsInternal.Values.ToList();
     private CancellationTokenSource TokenSource { get; } = new CancellationTokenSource();
 
+    private TaskCompletionSource? ReadyOk;
+    private object ReadyLock { get; } = new object();
+
     public async Task StartAsync()
     {
         AnonymousPipeServerStream outputStream = new AnonymousPipeServerStream(PipeDirection.Out);
@@ -95,6 +98,22 @@ public class ChessEngine : IObserver<CommandEvent>, IAsyncDisposable, IDisposabl
         {
             UpdateAvailableOptions(stdOutText);
         }
+
+        if (stdOutText.StartsWith("readyok"))
+        {
+            FireReadyOk();
+        }
+    }
+
+    private void FireReadyOk()
+    {
+        lock (ReadyLock)
+        {
+            if (ReadyOk != null)
+            {
+                ReadyOk.TrySetResult();
+            }
+        }
     }
 
 
@@ -109,36 +128,31 @@ public class ChessEngine : IObserver<CommandEvent>, IAsyncDisposable, IDisposabl
         TokenSource.Dispose();
         await _writer.DisposeAsync();
     }
-}
 
-class Observer : IObserver<CommandEvent>
-{
-    public void OnCompleted()
+    public async Task WaitForReadyAsync()
     {
-        Console.WriteLine("Process completed.");
-    }
-
-    public void OnError(Exception error)
-    {
-        Console.WriteLine($"Process error {error}");
-    }
-
-    public void OnNext(CommandEvent value)
-    {
-        switch (value)
+        Task readyTask;
+        lock (ReadyLock)
         {
-            case StartedCommandEvent started:
-                Console.WriteLine($"Process started; ID: {started.ProcessId}");
-                break;
-            case StandardOutputCommandEvent stdOut:
-                Console.WriteLine($"Out> {stdOut.Text}");
-                break;
-            case StandardErrorCommandEvent stdErr:
-                Console.WriteLine($"Err> {stdErr.Text}");
-                break;
-            case ExitedCommandEvent exited:
-                Console.WriteLine($"Process exited; Code: {exited.ExitCode}");
-                break;
+            if (ReadyOk == null || ReadyOk.Task.IsCompleted)
+            {
+                ReadyOk = new TaskCompletionSource();
+            }
+
+            readyTask = ReadyOk.Task;
         }
+
+        await SendCommandAsync("isready");
+        await readyTask;
+    }
+
+    public async Task StartGameAsync()
+    {
+        await SendCommandAsync($"ucinewgame");
+    }
+
+    public async Task GoAsync()
+    {
+        await SendCommandAsync("go");
     }
 }

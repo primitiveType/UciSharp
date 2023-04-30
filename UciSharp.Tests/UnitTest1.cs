@@ -5,19 +5,40 @@ namespace UciSharp.Tests;
 public class Tests
 {
     private readonly string path = "C:\\Users\\Arthu\\Downloads\\arasan23.5\\arasanx-64.exe";
+    private ChessEngine _engine;
 
     [SetUp]
-    public void Setup() { }
+    public async Task Setup()
+    {
+        _engine = new(path);
+        await _engine.StartAsync();
+        await _engine.WaitForReadyAsync();
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        await _engine.WaitForReadyAsync();
+        await _engine.DisposeAsync();
+    }
+
 
     [Test]
     public async Task TestChessEngineOptionsPopulated()
     {
-        ChessEngine engine = new(path);
-        StreamWriter writer = new(stream);
-        await engine.Start(stream);
-        await writer.WriteAsync("uci\n");
-        await engine.Stop();
-        Assert.That(engine.AvailableOptions, Has.Count.GreaterThan(0));
+        Assert.That(_engine.AvailableOptions, Has.Count.GreaterThan(0));
+    }
+    [Test]
+    public async Task TestChessEngineGame()
+    {
+        //TODO: set up some abstraction for getting a response back somewhat reliably for a particular command.
+        //The readyok pattern is ok, but needs to be re-usable so I don't have to set up TCS's all the time.
+        //I don't think I can guarantee anything about multiple commands of the same type, but that shouldn't be a real concern.
+        await _engine.StartGameAsync();
+        await _engine.GoAsync();
+        await _engine.GoAsync();
+        await _engine.GoAsync();
+        await _engine.GoAsync();
     }
 
     [Test]
@@ -32,17 +53,4 @@ public class Tests
         Assert.That(answer.Groups.TryGetValue("typeval", out Group? type));
         Assert.That(type.Value, Is.EqualTo("check"));
     }
-
-    // [Test]
-    // public async Task Test1()
-    // {
-    //     await using Stream input = Console.OpenStandardInput();
-    //     await using FileStream output = File.Create("chessoutput.txt");
-    //     Command command = Cli.Wrap(path)
-    //         .WithStandardInputPipe(PipeSource.FromStream(input)).WithStandardOutputPipe(PipeTarget.ToStream(output));
-    //     PipeSource pipe = command.StandardInputPipe;
-    //     CommandTask<CommandResult> task = command.ExecuteAsync();
-    //
-    //     await task;
-    // }
 }
