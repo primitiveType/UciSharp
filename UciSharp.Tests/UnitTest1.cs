@@ -13,7 +13,6 @@ public class Tests
     public async Task TestChessEngineOptionsPopulated()
     {
         ChessEngine engine = new(path);
-        MemoryStream stream = new MemoryStream(new byte[255]);
         StreamWriter writer = new(stream);
         await engine.Start(stream);
         await writer.WriteAsync("uci\n");

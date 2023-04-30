@@ -1,14 +1,13 @@
-using System.Runtime.CompilerServices;
+using System.IO.Pipes;
 using CliWrap;
-using CliWrap.Buffered;
 using CliWrap.EventStream;
+using Nerdbank.Streams;
 
 namespace UciSharp;
 
-public class ChessEngine : IObserver<CommandEvent>
+public class ChessEngine : IObserver<CommandEvent>, IAsyncDisposable, IDisposable
 {
-    private Task chessEngineTask;
-    private Task _readTask;
+    private StreamWriter _writer;
 
     public ChessEngine(string path)
     {
@@ -20,22 +19,16 @@ public class ChessEngine : IObserver<CommandEvent>
     public IReadOnlyList<Option> AvailableOptions => AvailableOptionsInternal.Values.ToList();
     private CancellationTokenSource TokenSource { get; } = new CancellationTokenSource();
 
-    public async Task Start()
+    public async Task StartAsync()
     {
-        await using var inputStream = Console.OpenStandardInput();
-        await using var outputStream = Console.OpenStandardOutput();
-        await Start(inputStream, outputStream);
+        AnonymousPipeServerStream outputStream = new AnonymousPipeServerStream(PipeDirection.Out);
+        SimplexStream inputStream = new SimplexStream();
+        _writer = new(inputStream);
+        await StartAsync(outputStream, inputStream);
     }
 
-    public async Task Start(Stream processOutputStream, Stream processInputStream)
+    public async Task StartAsync(Stream processOutputStream, Stream processInputStream)
     {
-        // MemoryStream stringStream = new();
-
-
-        // _readTask = Task.Run(async () => await ReadStreamAsync(processOutputStream, TokenSource.Token), TokenSource.Token);
-
-        // await using FileStream fileOutput = File.Create("output.txt");
-        // Command command = processInputStream | Cli.Wrap(Path) | processOutputStream;
         Command command = Cli.Wrap(Path)
                 // .WithStandardOutputPipe(PipeTarget.ToStream(fileOutput))
                 .WithStandardInputPipe(PipeSource.FromStream(processInputStream))
@@ -45,90 +38,20 @@ public class ChessEngine : IObserver<CommandEvent>
         IObservable<CommandEvent> observable = command.Observe();
         observable.Subscribe(this);
 
-        // chessEngineTask = Task.Run(async () => await ReadCommands(command));
-        // await using StreamWriter writer = new StreamWriter(processInputStream);
-        // await writer.WriteLineAsync("uci");
-
-
-        // chessEngineTask = command.ExecuteAsync(default, TokenSource.Token);
-        // chessEngineTask.ContinueWith(Done);
+        await StartUciAsync();
     }
 
-    private void Done(Task task)
+    public async Task SendCommandAsync(string command)
     {
-        Console.WriteLine($"process exited... {chessEngineTask.IsCompleted}");
+        await _writer.WriteLineAsync(command);
+        await _writer.FlushAsync();
     }
 
-    private async Task ReadCommands(Command cmd)
+    public async Task StartUciAsync()
     {
-        await foreach (var cmdEvent in cmd.ListenAsync())
-        {
-            switch (cmdEvent)
-            {
-                case StartedCommandEvent started:
-                    Console.WriteLine($"Process started; ID: {started.ProcessId}");
-                    break;
-                case StandardOutputCommandEvent stdOut:
-                    Console.WriteLine($"Out> {stdOut.Text}");
-                    break;
-                case StandardErrorCommandEvent stdErr:
-                    Console.WriteLine($"Err> {stdErr.Text}");
-                    break;
-                case ExitedCommandEvent exited:
-                    Console.WriteLine($"Process exited; Code: {exited.ExitCode}");
-                    break;
-            }
-        }
+        await SendCommandAsync("uci");
     }
 
-    public async Task Stop()
-    {
-        TokenSource.Cancel();
-        // await chessEngineTask;
-        // await Task.WhenAll(chessEngineTask, _readTask);
-    }
-
-
-    private async Task ReadStreamAsync(Stream stream, CancellationToken cancellationToken)
-    {
-        long readerPos = -1;
-        StreamReader reader = new(stream);
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                string? line = await reader.ReadLineAsync(cancellationToken);
-                if (readerPos != reader.BaseStream.Position)
-                {
-                    Console.WriteLine(reader.BaseStream.Position);
-                    readerPos = reader.BaseStream.Position;
-                }
-
-                if (line == null)
-                {
-                    await Task.Delay(10, cancellationToken);
-                    continue;
-                }
-
-                Console.WriteLine(line);
-
-                if (line.StartsWith("option"))
-                {
-                    UpdateAvailableOptions(line);
-                }
-
-                // byte[] buffer = new byte[256];
-                // var response = await stream.ReadAsync(buffer);
-                // if (response > 0)
-                // {
-                //     Console.WriteLine($"got {response} bytes!");
-                Console.Write(line);
-
-                // }
-            }
-        }
-        catch (TaskCanceledException) { }
-    }
 
     private void UpdateAvailableOptions(string line)
     {
@@ -172,6 +95,19 @@ public class ChessEngine : IObserver<CommandEvent>
         {
             UpdateAvailableOptions(stdOutText);
         }
+    }
+
+
+    public void Dispose()
+    {
+        _writer.Dispose();
+        TokenSource.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        TokenSource.Dispose();
+        await _writer.DisposeAsync();
     }
 }
 

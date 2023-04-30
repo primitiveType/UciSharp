@@ -2,8 +2,6 @@
 
 using System.Diagnostics;
 using System.IO.Pipes;
-using CliWrap;
-using Nerdbank.Streams;
 using UciSharp;
 
 Console.WriteLine("Hello, World!");
@@ -15,40 +13,20 @@ async Task TestWrapper(string path1)
 {
     ChessEngine engine = new(path1);
 
-    var outputStream = new AnonymousPipeServerStream(PipeDirection.Out);
-    var inputStream = new SimplexStream();
-    StreamWriter writer = new(inputStream);
-// MemoryStream inputStream = new MemoryStream();
-// // FileStream outputStream = File.Create("test.txt");
-// MemoryStream outputStream = new MemoryStream();
-
-
-    // await engine.Start(outputStream, inputStream);
-    //standard output writeonly
-    //standard input readonly
-
-    Console.WriteLine($"Read : {outputStream.CanRead} Write : {outputStream.CanWrite}");
-    Console.WriteLine($"Read : {inputStream.CanRead} Write : {inputStream.CanWrite}");
-
-    await engine.Start(outputStream, inputStream);
-    // await writer.WriteLineAsync("uci");
-// await writer.FlushAsync();
-    await Task.Delay(1000);
+    await engine.StartAsync();
 
     string? consoleInput = null;
     while (consoleInput != "q")
     {
         if (consoleInput != null)
         {
-            await writer.WriteLineAsync(consoleInput);
-            await writer.FlushAsync();
+            await engine.SendCommandAsync(consoleInput);
         }
 
         await Task.Delay(10);
         consoleInput = Console.ReadLine();
     }
-    inputStream.CompleteWriting();
-    await engine.Stop();
+    await engine.DisposeAsync();
 }
 // TestManual(path);
 
