@@ -49,7 +49,6 @@ public class UciBridge
 
         IObservable<CommandEvent> observable = command.Observe();
         observable.Subscribe(Observer);
-        await StartUciAsync();
     }
 
     public async Task SendCommandAsync(string command)
@@ -58,18 +57,9 @@ public class UciBridge
         await _writer.FlushAsync();
     }
 
-    public async Task StartUciAsync()
+    public async Task WaitForReadyAsync()
     {
-        await SendCommandAsync("uci");
+        await SendCommandAsync("isready");
     }
-
-    public async Task StartGameAsync()
-    {
-        await SendCommandAsync("ucinewgame");
-    }
-
-    public async Task GoAsync()
-    {
-        await SendCommandAsync("go");
-    }
+    
 }

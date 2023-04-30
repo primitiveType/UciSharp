@@ -1,24 +1,32 @@
+using Nerdbank.Streams;
+
 namespace UciSharp;
 
 public class ChessEngine : IAsyncDisposable, IDisposable
 {
-    private UciOptionsCommandObserver OptionsCommandObserver { get; }
+    //it is not possible to attach multiple observers to CliWrap, so this one aggregates our observers and forwards all messages.
+    private ObserverAggregator ObserverAggregator { get; } = new();
+    private UciOptionsCommand OptionsCommand { get; }
+    private ReadyCommand ReadyCommand { get; }
+    public UciBridge UciBridge { get; }
+    private NewGameCommand NewGameCommand { get; }
+    private GoCommand GoCommand { get; }
+
 
     public ChessEngine(string path)
     {
         UciBridge = new UciBridge(path, ObserverAggregator);
-        ReadyObserver = new ReadyObserver(UciBridge);
-        OptionsCommandObserver = new UciOptionsCommandObserver(UciBridge);
-        ObserverAggregator.Subscribe(ReadyObserver);
-        ObserverAggregator.Subscribe(OptionsCommandObserver);
+
+        GoCommand = new GoCommand(UciBridge);
+        NewGameCommand = new NewGameCommand(UciBridge);
+        ReadyCommand = new ReadyCommand(UciBridge);
+        OptionsCommand = new UciOptionsCommand(UciBridge);
+        ObserverAggregator.Subscribe(ReadyCommand);
+        ObserverAggregator.Subscribe(OptionsCommand);
+        ObserverAggregator.Subscribe(NewGameCommand);
+        ObserverAggregator.Subscribe(GoCommand);
     }
 
-    private ReadyObserver ReadyObserver { get; }
-    
-    //it is not possible to attach multiple observers to CliWrap, so this one aggregates our observers and forwards all messages.
-    private ObserverAggregator ObserverAggregator { get; } = new();
-
-    public UciBridge UciBridge { get; }
 
     public async ValueTask DisposeAsync()
     {
@@ -32,19 +40,35 @@ public class ChessEngine : IAsyncDisposable, IDisposable
 
     public async Task<IReadOnlyList<Option>> StartAsync()
     {
-        return await OptionsCommandObserver.InvokeAsync();
+        await UciBridge.StartAsync();
+        return await OptionsCommand.InvokeAsync();
     }
 
     public async Task WaitForReadyAsync()
     {
-        await ReadyObserver.InvokeAsync();
+        await ReadyCommand.InvokeAsync();
     }
 
     public async Task SetOptions(IList<Option> options)
     {
         foreach (Option option in options)
         {
-            UciBridge.SendCommandAsync(option.SetCommandString);
+            await UciBridge.SendCommandAsync(option.SetCommandString);
         }
+    }
+
+    public async Task<IReadOnlyList<Option>> GetOptionsAsync()
+    {
+        return await OptionsCommand.InvokeAsync();
+    }
+
+    public async Task StartGameAsync()
+    {
+        await NewGameCommand.InvokeAsync();
+    }
+
+    public async Task<string> GoAsync()
+    {
+        return await GoCommand.InvokeAsync();
     }
 }

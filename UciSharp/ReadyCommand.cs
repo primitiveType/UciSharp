@@ -1,8 +1,8 @@
 ﻿namespace UciSharp;
 
-public class ReadyObserver : CommandObserver<bool>
+public class ReadyCommand : CommandObserver<bool>
 {
-    public ReadyObserver(UciBridge uciBridge) : base(uciBridge) { }
+    public ReadyCommand(UciBridge uciBridge) : base(uciBridge) { }
 
 
     protected override void HandleChessEngineResponse(string stdOutText)

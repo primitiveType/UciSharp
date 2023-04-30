@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace UciSharp.Tests;
 
 public class OptionsTests
@@ -27,7 +25,7 @@ public class OptionsTests
     public void TestOptionsRegex(string input, string expectedName, OptionType expectedType, string expectedDefault, int expectedMin = -1,
         int expectedMax = -1)
     {
-        var option = new Option(input);
+        Option option = new Option(input);
 
 
         Assert.That(option.Name, Is.EqualTo(expectedName));
@@ -40,15 +38,15 @@ public class OptionsTests
 
 public class Tests
 {
+    private readonly OptionsTests _optionsTests = new();
     private readonly string path = "C:\\Users\\Arthu\\Downloads\\arasan23.5\\arasanx-64.exe";
     private ChessEngine _engine = null!;
-    private readonly OptionsTests _optionsTests = new OptionsTests();
 
     [SetUp]
     public async Task SetupAsync()
     {
-        _engine = new(path);
-        await _engine.UciBridge.StartAsync();
+        _engine = new ChessEngine(path);
+        await _engine.StartAsync();
         await _engine.WaitForReadyAsync();
     }
 
@@ -63,19 +61,27 @@ public class Tests
     [Test]
     public async Task TestChessEngineOptionsPopulatedAsync()
     {
-        Assert.That(_engine.StartAsync().Result, Has.Count.GreaterThan(0));
+        Assert.That(await _engine.StartAsync(), Has.Count.GreaterThan(0));
+    }
+
+    [Test]
+    public async Task TestSetOptions()
+    {
+        await _engine.StartAsync();
+
+        await _engine.SetOptions(new List<Option>
+        {
+            new("Ponder", "false")
+        });
     }
 
     [Test]
     public async Task TestChessEngineGameAsync()
     {
-        //TODO: set up some abstraction for getting a response back somewhat reliably for a particular command.
-        //The readyok pattern is ok, but needs to be re-usable so I don't have to set up TCS's all the time.
-        //I don't think I can guarantee anything about multiple commands of the same type, but that shouldn't be a real concern.
-        await _engine.UciBridge.StartGameAsync();
-        await _engine.UciBridge.GoAsync();
-        await _engine.UciBridge.GoAsync();
-        await _engine.UciBridge.GoAsync();
-        await _engine.UciBridge.GoAsync();
+        await _engine.StartGameAsync();
+        Console.WriteLine(await _engine.GoAsync());
+        await _engine.GoAsync();
+        await _engine.GoAsync();
+        await _engine.GoAsync();
     }
 }

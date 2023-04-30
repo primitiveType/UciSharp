@@ -1,6 +1,6 @@
 ﻿namespace UciSharp;
 
-public class UciOptionsCommandObserver : CommandObserver<IReadOnlyList<Option>>
+public class UciOptionsCommand : CommandObserver<IReadOnlyList<Option>>
 {
     private Dictionary<string, Option> AvailableOptionsInternal { get; } = new();
     public IReadOnlyList<Option> AvailableOptions => AvailableOptionsInternal.Values.ToList();
@@ -27,5 +27,5 @@ public class UciOptionsCommandObserver : CommandObserver<IReadOnlyList<Option>>
         await UciBridge.SendCommandAsync("uci");
     }
 
-    public UciOptionsCommandObserver(UciBridge uciBridge) : base(uciBridge) { }
+    public UciOptionsCommand(UciBridge uciBridge) : base(uciBridge) { }
 }
