@@ -1,18 +1,46 @@
 ﻿using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 
 namespace UciSharp;
 
+[PublicAPI]
 public struct Option
 {
     public string Name { get; }
     public string Value { get; }
+    public string Default { get; }
     public int Min { get; } = -1;
     public int Max { get; } = -1;
 
     public OptionType Type { get; }
 
-    private string _uciRegex =
-        @"^option\s+name\s+(?<name>\S+)\s+(?:type\s+)?(?<type>\S+)\s+(?:min\s+(?<min>\S+)\s+)?(?:max\s+(?<max>\S+)\s+)?(?:default\s+(?<default>\S+)\s+)?(?:var\s+(?<var>\S+)\s+)?";
+    public string SetCommandString =>
+        $"setoption name {{Name}} {GetValueNameString("value", Value)}";
+
+    private string GetValueNameString(string nameString, string? valueString)
+    {
+        if (string.IsNullOrWhiteSpace(valueString))
+        {
+            return "";
+        }
+
+        return nameString + $" {valueString}";
+    }
+
+    internal const string UCI_NAME_REGEX =
+        @"^option\s+name\s+(?<name>[\S ]+?)(?=\s*(?:type|default|min|max|$))\s*";
+
+    internal const string UCI_TYPE_REGEX =
+        @"(?<=type\s)\S+(?=\s*(?:default|min|max|$))";
+
+    internal const string UCI_DEFAULT_REGEX =
+        @"(?<=default\s)\S+(?=\s*(?:min|max|$))";
+
+    internal const string UCI_MIN_REGEX =
+        @"(?<=min\s)\S+(?=\s(?:max|$))";
+
+    internal const string UCI_MAX_REGEX =
+        @"(?<=max\s)\S+(?<max>\S+)";
 
     public Option(string name, string value)
     {
@@ -22,10 +50,9 @@ public struct Option
 
     public Option(string uciString)
     {
-        Regex regex = new Regex(_uciRegex);
-        var answer = regex.Match(uciString);
+        Match nameCapture = Regex.Match(uciString, UCI_NAME_REGEX);
 
-        if (answer.Groups.TryGetValue("name", out var name))
+        if (nameCapture.Groups.TryGetValue("name", out Group? name))
         {
             Name = name.Value;
         }
@@ -34,27 +61,45 @@ public struct Option
             throw new ArgumentException("No option name found!");
         }
 
-        if (answer.Groups.TryGetValue("type", out var type))
+        Match typeCapture = Regex.Match(uciString, UCI_TYPE_REGEX);
+
+
+        if (typeCapture.Groups.Count > 0)
         {
-            if(Enum.TryParse<OptionType>(type.Value, true, out var value))
+            Group type = typeCapture.Groups[0];
+            if (Enum.TryParse(type.Value, true, out OptionType value))
             {
                 Type = value;
             }
         }
 
-        if (answer.Groups.TryGetValue("min", out var min))
+        Match defaultCapture = Regex.Match(uciString, UCI_DEFAULT_REGEX);
+        if (defaultCapture.Groups.Count > 0)
         {
-            if (!String.IsNullOrWhiteSpace(min.Value))
+            Group defaultValue = defaultCapture.Groups[0];
+            Default = defaultValue.Value;
+        }
+
+        Match minCapture = Regex.Match(uciString, UCI_MIN_REGEX);
+
+        if (minCapture.Groups.Count > 0)
+        {
+            Group min = minCapture.Groups[0];
+            if (int.TryParse(min.Value, out int value))
             {
-                Min = Int32.Parse(min.Value);
+                Min = value;
             }
         }
 
-        if (answer.Groups.TryGetValue("max", out var max))
+        Match maxCapture = Regex.Match(uciString, UCI_MAX_REGEX);
+
+
+        if (maxCapture.Groups.Count > 0)
         {
-            if (!String.IsNullOrWhiteSpace(max.Value))
+            Group max = maxCapture.Groups[0];
+            if (int.TryParse(max.Value, out int value))
             {
-                Max = Int32.Parse(max.Value);
+                Max = value;
             }
         }
     }
@@ -62,11 +107,12 @@ public struct Option
     private void ParseUciOption(string uciString) { }
 }
 
+[PublicAPI]
 public enum OptionType
 {
     Check,
-    Button,
     Spin,
-    String,
-    TableBases
+    Combo,
+    Button,
+    String
 }

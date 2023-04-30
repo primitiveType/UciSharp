@@ -18,7 +18,7 @@ async Task TestWrapper(string path1)
     {
         if (consoleInput != null)
         {
-            await engine.SendCommandAsync(consoleInput);
+            await engine.UciBridge.SendCommandAsync(consoleInput);
         }
 
         await Task.Delay(10);
