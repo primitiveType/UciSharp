@@ -1,3 +1,4 @@
+using Microsoft.VisualBasic;
 using Nerdbank.Streams;
 
 namespace UciSharp;
@@ -10,21 +11,26 @@ public class ChessEngine : IAsyncDisposable, IDisposable
     private ReadyCommand ReadyCommand { get; }
     public UciBridge UciBridge { get; }
     private NewGameCommand NewGameCommand { get; }
-    private GoCommand GoCommand { get; }
+
+    // private PositionCommand PositionCommand { get; }
+    // private GoCommand GoCommand { get; }
 
 
     public ChessEngine(string path)
     {
         UciBridge = new UciBridge(path, ObserverAggregator);
 
-        GoCommand = new GoCommand(UciBridge);
+        // GoCommand = new GoCommand(UciBridge);
         NewGameCommand = new NewGameCommand(UciBridge);
+        // PositionCommand = new PositionCommand(UciBridge);
         ReadyCommand = new ReadyCommand(UciBridge);
         OptionsCommand = new UciOptionsCommand(UciBridge);
+        // ObserverAggregator.Subscribe(UciBridge.GetFlusher());
         ObserverAggregator.Subscribe(ReadyCommand);
         ObserverAggregator.Subscribe(OptionsCommand);
         ObserverAggregator.Subscribe(NewGameCommand);
-        ObserverAggregator.Subscribe(GoCommand);
+        // ObserverAggregator.Subscribe(GoCommand);
+        // ObserverAggregator.Subscribe(PositionCommand);
     }
 
 
@@ -67,8 +73,25 @@ public class ChessEngine : IAsyncDisposable, IDisposable
         await NewGameCommand.InvokeAsync();
     }
 
-    public async Task<string> GoAsync()
+    public async Task<string> GoAsync(int msLimit = -1)
     {
-        return await GoCommand.InvokeAsync();
+        GoCommand goCommand = new(UciBridge);
+        using (ObserverAggregator.Subscribe(goCommand))
+        {
+            if (msLimit >= 0)
+            {
+                return await goCommand.InvokeAsync($"movetime {msLimit}");
+            }
+            return await goCommand.InvokeAsync();
+        }
+    }
+
+    public async Task SetPositionAsync(string fenString)
+    {
+        PositionCommand positionCommand = new(UciBridge);
+        using (ObserverAggregator.Subscribe(positionCommand))
+        {
+            await positionCommand.InvokeAsync(fenString);
+        }
     }
 }

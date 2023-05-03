@@ -1,4 +1,6 @@
-﻿using CliWrap.EventStream;
+﻿using System.Net.Http.Headers;
+using CliWrap;
+using CliWrap.EventStream;
 
 namespace UciSharp;
 
@@ -13,9 +15,11 @@ public class ObserverAggregator : IObserver<CommandEvent>, IObservable<CommandEv
 
     public void OnCompleted()
     {
+        Console.WriteLine($"Chess Engine process completed.");
+
         lock (Observers)
         {
-            foreach (IObserver<CommandEvent> observer in Observers)
+            foreach (IObserver<CommandEvent> observer in Observers.ToList())
             {
                 observer.OnCompleted();
             }
@@ -24,9 +28,11 @@ public class ObserverAggregator : IObserver<CommandEvent>, IObservable<CommandEv
 
     public void OnError(Exception error)
     {
+        Console.WriteLine($"+_{error}_");
+
         lock (Observers)
         {
-            foreach (IObserver<CommandEvent> observer in Observers)
+            foreach (IObserver<CommandEvent> observer in Observers.ToList())
             {
                 observer.OnError(error);
             }
@@ -37,7 +43,7 @@ public class ObserverAggregator : IObserver<CommandEvent>, IObservable<CommandEv
     {
         lock (Observers)
         {
-            foreach (IObserver<CommandEvent> observer in Observers)
+            foreach (IObserver<CommandEvent> observer in Observers.ToList())
             {
                 observer.OnNext(value);
             }

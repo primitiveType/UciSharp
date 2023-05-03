@@ -22,7 +22,7 @@ public class UciOptionsCommand : CommandObserver<IReadOnlyList<Option>>
         ResolveResponse(AvailableOptions);
     }
 
-    protected override async Task SendCommandAsync()
+    protected override async Task SendCommandAsync(string? options)
     {
         await UciBridge.SendCommandAsync("uci");
     }

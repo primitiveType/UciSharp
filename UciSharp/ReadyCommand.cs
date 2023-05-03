@@ -13,7 +13,7 @@ public class ReadyCommand : CommandObserver<bool>
         }
     }
 
-    protected override async Task SendCommandAsync()
+    protected override async Task SendCommandAsync(string? options)
     {
         await UciBridge.SendCommandAsync("isready");
     }

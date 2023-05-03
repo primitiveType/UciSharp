@@ -12,11 +12,11 @@ public abstract class CommandWaitForReadyObserver : CommandObserver<bool>
         }
     }
 
-    protected override async Task SendCommandAsync()
+    protected override async Task SendCommandAsync(string? options = null)
     {
-        await SendInitialCommandAsync();
+        await SendInitialCommandAsync(options);
         await UciBridge.WaitForReadyAsync();
     }
 
-    protected abstract Task SendInitialCommandAsync();
+    protected abstract Task SendInitialCommandAsync(string? options = null);
 }

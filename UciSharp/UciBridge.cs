@@ -1,4 +1,5 @@
 ﻿using System.IO.Pipes;
+using System.Text;
 using CliWrap;
 using CliWrap.EventStream;
 using Nerdbank.Streams;
@@ -10,12 +11,18 @@ public class UciBridge
     public string Path { get; }
     public IObserver<CommandEvent> Observer { get; }
     private StreamWriter _writer;
+    private StringBuilder _outputStream;
+    private SimplexStream _inputStream;
     private CancellationTokenSource TokenSource { get; } = new();
 
     public UciBridge(string path, IObserver<CommandEvent> observer)
     {
         Path = path;
         Observer = observer;
+        _outputStream = new StringBuilder();
+        // _outputStream = new(PipeDirection.Out, HandleInheritability.None, 4098 * 4 );
+        _inputStream = new(16, 32);
+        _writer = new StreamWriter(_inputStream);
     }
 
     public async ValueTask DisposeAsync()
@@ -32,18 +39,16 @@ public class UciBridge
 
     public async Task StartAsync()
     {
-        AnonymousPipeServerStream outputStream = new(PipeDirection.Out);
-        SimplexStream inputStream = new();
-        _writer = new StreamWriter(inputStream);
-        await StartAsync(outputStream, inputStream);
+      
+        await StartAsync(_outputStream, _inputStream);
     }
 
-    public async Task StartAsync(Stream processOutputStream, Stream processInputStream)
+    public async Task StartAsync(StringBuilder processOutputStream, Stream processInputStream)
     {
         Command command = Cli.Wrap(Path)
                 // .WithStandardOutputPipe(PipeTarget.ToStream(fileOutput))
                 .WithStandardInputPipe(PipeSource.FromStream(processInputStream))
-                .WithStandardOutputPipe(PipeTarget.ToStream(processOutputStream))
+                .WithStandardOutputPipe(PipeTarget.ToStringBuilder(processOutputStream))
             ;
 
 

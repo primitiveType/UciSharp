@@ -45,9 +45,18 @@ public class Tests
     [SetUp]
     public async Task SetupAsync()
     {
+        TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
         _engine = new ChessEngine(path);
         await _engine.StartAsync();
         await _engine.WaitForReadyAsync();
+        
+    }
+
+    private void TaskSchedulerOnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Console.WriteLine(e.Exception.Message);
+        
+        Assert.Fail(e.Exception.Message);
     }
 
     [TearDown]
@@ -65,7 +74,7 @@ public class Tests
     }
 
     [Test]
-    public async Task TestSetOptions()
+    public async Task TestSetOptionsAsync()
     {
         await _engine.StartAsync();
 
@@ -80,8 +89,33 @@ public class Tests
     {
         await _engine.StartGameAsync();
         Console.WriteLine(await _engine.GoAsync());
+
         await _engine.GoAsync();
         await _engine.GoAsync();
         await _engine.GoAsync();
+    }
+
+    [Test]
+    [Timeout(10_000)]
+    public async Task BufferSurvivesMakingManyMovesAsync()
+    {
+        string positionAfterFirstMove = @"rnbqkbnr/ppp1pp1p/6p1/3p4/8/PPP5/3PPPPP/RNBQKBNR b KQkq - 0 6";
+        // string positionAfterSecondMove = @"rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 2";
+
+        for (int i = 0; i < 400; i++)
+        {
+            await _engine.SetPositionAsync(positionAfterFirstMove);
+            await _engine.WaitForReadyAsync();
+            var move = await _engine.GoAsync();
+
+            await _engine.SetPositionAsync(positionAfterFirstMove);
+            await _engine.WaitForReadyAsync();
+            var move2 = await _engine.GoAsync();
+            Console.WriteLine("S_________________");
+
+            Console.WriteLine(move);
+            Console.WriteLine(move2);
+            await _engine.WaitForReadyAsync();
+        }
     }
 }
